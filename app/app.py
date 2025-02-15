@@ -1,68 +1,79 @@
-from flask import Flask, render_template, request, redirect, abort
+from flask import Flask, render_template, request, redirect, abort, g
 import string
 import random
+import sqlite3  # Utilisation de SQLite (plus de dictionnaire !)
 from urllib.parse import urlparse
 
 app = Flask(__name__)
+app.config['DATABASE'] = 'urls.db'  # Nom du fichier de la base de données
 
-# Dictionnaire pour stocker les mappages d'URL (pourrait être remplacé par une base de données)
-url_mapping = {}
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(app.config['DATABASE'])
+    return db
+
+def init_db():
+    with app.app_context():
+        db = get_db()
+        with open('schema.sql', mode='r') as f:  # Utilisation du chemin relatif correct
+            db.cursor().executescript(f.read())
+        db.commit()
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
 def generate_short_code(length=6):
-    """Génère un code court aléatoire de la longueur donnée."""
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
 def is_valid_url(url):
-    """Vérification de base de la validité d'une URL."""
     try:
         result = urlparse(url)
         return all([result.scheme, result.netloc])
     except ValueError:
         return False
 
-
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    """Page d'accueil: affiche le formulaire et l'URL raccourcie (si disponible)."""
     if request.method == 'POST':
         long_url = request.form['long_url']
 
         if not is_valid_url(long_url):
-            return render_template('index.html', error="URL invalide. Veuillez vous assurer d'inclure le schéma (par exemple, http:// ou https://).")
+            return render_template('index.html', error="URL invalide. Veuillez inclure le schéma (http:// ou https://).")
 
-        # Générer un code court unique
         while True:
             short_code = generate_short_code()
-            if short_code not in url_mapping:
+            db = get_db()
+            cur = db.execute('SELECT 1 FROM urls WHERE short_code = ?', [short_code])
+            if cur.fetchone() is None:  # Vérification d'unicité *correcte*
                 break
 
-        url_mapping[short_code] = long_url
-        short_url = request.host_url + short_code  # Créer l'URL raccourcie complète
-
+        db.execute('INSERT INTO urls (short_code, long_url) VALUES (?, ?)', [short_code, long_url])
+        db.commit()
+        short_url = request.host_url + short_code
         return render_template('index.html', short_url=short_url)
 
     return render_template('index.html')
 
-
-
 @app.route('/<short_code>')
 def redirect_to_long_url(short_code):
-    """Redirige du code court vers l'URL longue d'origine."""
-    if short_code in url_mapping:
-        long_url = url_mapping[short_code]
-        return redirect(long_url)  # Redirection cruciale !
+    db = get_db()
+    cur = db.execute('SELECT long_url FROM urls WHERE short_code = ?', [short_code])
+    result = cur.fetchone()
+    if result:
+        long_url = result[0]
+        return redirect(long_url)
     else:
-        abort(404) # Page non trouvée si le code n'existe pas
-
+        abort(404)
 
 @app.errorhandler(404)
 def page_not_found(e):
-    """Gérer les erreurs 404 (page non trouvée)."""
     return render_template('404.html'), 404
 
-
-
 if __name__ == '__main__':
-    app.run(debug=True)  # debug=True pour le développement
+    init_db()
+    app.run(debug=True)

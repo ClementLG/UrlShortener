@@ -78,3 +78,19 @@ XX
 
 **Réponse (JSON) en cas d'erreur (par exemple, URL long_url manquante dans la requête - code 400 Bad Request) :**
 XX
+
+## Schéma 
+```url_shortener/
+├── app.py
+├── templates/
+│   ├── index.html
+│   ├── 404.html
+│   └── partials/
+│       └── logo.html 
+├── static/
+│   ├── style.css   
+│   ├── images/
+│       └── favicon.ico    
+│       └── logo.png       
+└── schema.sql 
+```
