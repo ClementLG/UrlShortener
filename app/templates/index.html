@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL Shortener</title>
+    <style>
+        body { font-family: sans-serif; }
+        .container { width: 500px; margin: 0 auto; }
+        input[type=text] { width: 100%; padding: 12px 20px; margin: 8px 0; box-sizing: border-box; }
+        button { background-color: #4CAF50; color: white; padding: 14px 20px; margin: 8px 0; border: none; cursor: pointer; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>URL Shortener</h1>
+        <form method="POST">
+            <label for="long_url">URL longue:</label><br>
+            <input type="text" id="long_url" name="long_url" placeholder="Entrez votre URL longue" required><br>
+            <button type="submit">Raccourcir</button>
+        </form>
+
+        {% if short_url %}
+            <p>URL raccourcie: <a href="{{ short_url }}">{{ short_url }}</a></p>
+        {% endif %}
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+    </div>
+</body>
+</html>
