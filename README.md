@@ -1,196 +1,107 @@
+# Raccourcisseur d'URL
 
-# UrlShortener
+Une application simple de raccourcissement d'URL construite avec Python, Flask, et SQLite.
 
-  
+## Fonctionnalités
 
-**WORK IN PROGRESS !!**
+*   Raccourcissement d'URL.
+*   Expiration automatique des URL (configurable : 24h, 48h, 1 semaine).
+*   Redirection vers l'URL longue.
+*   Protection basique contre le DDoS (limitation du débit).
+*   Logging des actions (création, accès, expiration, erreurs).
 
-  
+## Prérequis
 
-## Description du Projet
+*   Python 3.7+
+*   Flask
+*   Flask-Limiter
+*   (Optionnel) Docker et Docker Compose
 
-  
+## Installation (sans Docker)
 
-Ce projet est une application web simple et efficace pour raccourcir les URLs longues en URLs courtes, plus faciles à partager et à mémoriser. L'application est construite avec Python et le framework Flask. Elle offre à la fois une interface web conviviale pour raccourcir les URLs et une API pour une intégration dans d'autres services ou applications.
+1.  **Cloner le dépôt :**
+    ```bash
+    git clone <URL_DU_DEPOS>
+    cd <NOM_DU_DOSSIER>
+    ```
 
-  
+2.  **Créer un environnement virtuel (recommandé) :**
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate  # Linux/macOS
+    venv\Scripts\activate  # Windows
+    ```
 
-## Fonctionnalités Principales
+3.  **Installer les dépendances :**
+    ```bash
+    pip install Flask Flask-Limiter
+    ```
 
-  
+4.  **Créer le dossier des logs**
+    ```bash
+    mkdir logs
+    ```
+5.  **Lancer l'application :**
+    ```bash
+    python app.py
+    ```
 
-*  **Raccourcissement d'URL :** Permet de transformer une URL longue en une URL courte et unique.
+    L'application sera accessible à l'adresse `http://IP_DE_VOTRE_HOST:5000`.
 
-*  **Redirection :** Les URLs courtes redirigent de manière transparente vers l'URL longue d'origine.
+## Installation avec Docker
 
-*  **Interface Web :** Interface utilisateur simple et intuitive pour raccourcir les URLs via un navigateur web. [Image of Exemple d'interface utilisateur simple pour un raccourcisseur d'URL]
+1.  **Installer Docker et Docker Compose.**
+2.  **Cloner le dépôt.**
+3.  **Construire et lancer l'application :**
+    ```bash
+    docker compose -d up
+    ```
+4.  **Accéder à l'application :**  `http://IP_DE_VOTRE_HOST:5000`
 
-*  **API (Application Programming Interface) :** API RESTful permettant de raccourcir les URLs de manière programmatique.
+## Fichiers de configuration
 
-*  **Sécurité DDOS :** Protection contre les attaques DDOS basées sur la limitation du nombre de requêtes par adresse IP
+*   `app.py` :  Code principal de l'application Flask.
+*   `schema.sql` :  Schéma de la base de données SQLite.
+*   `templates/` :  Templates HTML (index.html, 404.html, partials/logo.html, 429.html).
+*   `static/` :  Fichiers statiques (style.css, images).
+*   `Dockerfile` :  Instructions pour construire l'image Docker.
+*   `docker-compose.yml` :  Configuration pour Docker Compose.
+*   `logs/app.log`: Fichier de logs (créé automatiquement).
+*   `url.db`: Base de donnée SQLite (créée automatiquement).
 
-*  **Base de données Open Source :** Utilisation d'une BDD pour stocker les correspondances URL courte -> URL longue.
+## Logs
 
-  
+Les logs sont enregistrés dans le fichier `logs/app.log`.  Ils incluent l'horodatage, l'adresse IP de l'utilisateur, l'URL (longue et courte, si applicable), et l'action effectuée. Les logs effectuent une rotation hebdomadaire, conservant les logs des 4 dernières semaines.
 
-## Technologies Utilisées
+## Améliorations possibles
 
-  
+*   Authentification des utilisateurs.
+*   Interface utilisateur pour gérer les URL raccourcies (modification, suppression, statistiques, traking).
+*   API RESTful.
+*   Utilisation d'une base de données plus robuste (PostgreSQL, MySQL) pour la production.
+*   Tests unitaires.
 
-*  **Backend :**
-
-*  **Python 3.x**
-
-*  **Flask :** Micro-framework web Python pour le backend et l'API.
-
-*  **Flask-Limiter :** Pour la protection contre les DDOS et la limitation de débit.
-
-*  **Pymongo :** ~~Pilote Python officiel pour interagir avec MongoDB~~
-
-*  **Base de données :**  **MongoDB** - ~~Base de données NoSQL orientée documents. Choisi pour sa flexibilité, sa scalabilité horizontale et sa bonne performance avec des données non relationnelles, ce qui est adapté pour un raccourcisseur d'URL.~~
-
-  
-
-*  **Frontend (Interface Web) :**
-
-*  **HTML, CSS, JavaScript** (Simple - pas de framework frontend majeur prévu pour cette version de base, peut-être à ajouter plus tard).
-
-*  **Autres outils :**
-
-*  **pip :** Gestionnaire de paquets Python.
-
-*  **Git :** Pour la gestion de version.
-
-  
-
-## Installation
-
-  
-
-Suivez ces étapes pour installer et exécuter l'application localement :
-
-  
-
-1.  **Cloner le dépôt GitHub :**
-
-```bash
-
-git clone [URL_DE_VOTRE_REPO_GITHUB]
-
-cd [NOM_DU_DOSSIER_DU_PROJET]
-
-```
-
-  
-
-2.  **Coming soon**
-
-```bash
-
-XXXXX
+## Architecture
 
 ```
-
-  
-
-## Utilisation
-
-  
-
-### Interface Web
-
-  
-
-1. Ouvrez la page d'accueil de l'application dans votre navigateur web.
-
-2. Entrez l'URL longue que vous souhaitez raccourcir dans le champ prévu à cet effet.
-
-3. Cliquez sur le bouton "Raccourcir".
-
-4. L'application générera une URL courte et l'affichera. Vous pourrez copier cette URL courte et la partager.
-
-  
-
-### API
-
-  
-
-L'API fournit un endpoint pour raccourcir les URLs de manière programmatique.
-
-  
-
-**Endpoint :**  `/api/v1/urls`
-
-  
-
-**Méthode :**  `POST`
-
-  
-
-**Format de la requête (JSON) :**
-
-  
-
-```json
-
-{
-
-"long_url": "URL_LONGUE_A_RACCOURCIR"
-
-}
-
-```
-
-**Exemple de requête avec curl :**
-
-  
-
-```bash
-
-curl  XX
-
-  
-
-```
-
-**Réponse (JSON) en cas de succès (code 201 Created) :**
-
-XX
-
-  
-
-**Réponse (JSON) en cas d'erreur (par exemple, URL long_url manquante dans la requête - code 400 Bad Request) :**
-
-XX
-
-  
-
-## Schéma
-
-```url_shortener/
-
-├── app.py
-
-├── templates/
-
-│ ├── index.html
-
-│ ├── 404.html
-
-│ └── partials/
-
-│ └── logo.html
-
-├── static/
-
-│ ├── style.css
-
-│ ├── images/
-
-│ └── favicon.ico
-
-│ └── logo.png
-
-└── schema.sql
+url_shortener/        <-- Répertoire racine du projet
+├── app.py            <-- Fichier principal de l'application Flask
+├── schema.sql        <-- Schéma de la base de données SQLite
+├── templates/        <-- Templates HTML
+│   ├── index.html    <-- Page d'accueil (formulaire)
+│   ├── 404.html      <-- Page d'erreur 404
+│   └── partials/
+│       └── logo.html  <-- Partial pour le logo (réutilisable)
+├── static/           <-- Fichiers statiques (CSS, JS, images)
+│   ├── style.css     <-- Fichier CSS personnalisé
+│   └── images/
+│       ├── favicon.ico <-- Favicon de l'application
+│       └── logo.png    <-- (Optionnel) Image du logo
+├── Dockerfile        <-- Instructions pour construire l'image Docker
+├── docker-compose.yml <-- Fichier de configuration Docker Compose
+├── logs/              <-- créez ce repertoire manuellement
+│   └── app.log    <-- Fichier de log (créé dynamiquement)
+├── venv/             <-- (Optionnel) Environnement virtuel
+└── README.md         <-- Ce fichier
 
 ```
