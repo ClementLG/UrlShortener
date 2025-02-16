@@ -4,9 +4,24 @@ import random
 import sqlite3  # Utilisation de SQLite (plus de dictionnaire !)
 from urllib.parse import urlparse
 import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
+# Basic config
 app = Flask(__name__)
 app.config['DATABASE'] = 'urls.db'  # Nom du fichier de la base de données
+# Configuration de Flask-Limiter
+app.config['RATELIMIT_DEFAULT'] = "200/day;50/hour;10/minute"  # Limites globales par défaut
+app.config['RATELIMIT_STRATEGY'] = 'moving-window'  # Algorithme
+app.config[
+    'RATELIMIT_STORAGE_URL'] = "memory://"  # Stockage en mémoire (simple, mais redémarre à zéro si l'app redémarre)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    storage_uri=app.config['RATELIMIT_STORAGE_URL'],
+    strategy=app.config['RATELIMIT_STRATEGY']
+)
 
 
 def get_db():
@@ -65,6 +80,7 @@ def cleanup_expired_urls():
 
 
 @app.route('/', methods=['GET', 'POST'])
+@limiter.limit("5/minute")  # Limite spécifique pour cette route
 def index():
     if request.method == 'POST':
         long_url = request.form['long_url']
@@ -92,6 +108,7 @@ def index():
 
 
 @app.route('/<short_code>')
+@limiter.limit("10/minute")  # Limite spécifique
 def redirect_to_long_url(short_code):
     db = get_db()
     cur = db.execute('SELECT long_url, expiration_date FROM urls WHERE short_code = ?', [short_code])
@@ -104,9 +121,6 @@ def redirect_to_long_url(short_code):
         if datetime.datetime.now() < expiration_date:
             return redirect(long_url)
         else:
-            # Optionnel: Supprimer l'URL expirée ici (pour éviter le "nettoyage" séparé)
-            #db.execute('DELETE FROM urls WHERE short_code = ?', [short_code])
-            #db.commit()
             cleanup_expired_urls()
             abort(404, description="Ce lien a expiré.")  # Message d'erreur plus explicite
     else:
@@ -116,6 +130,11 @@ def redirect_to_long_url(short_code):
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html', error_message=e.description), 404
+
+
+@app.errorhandler(429)  # Gérer le code d'erreur 429 (Too Many Requests)
+def ratelimit_handler(e):
+    return render_template('429.html', limit=e.description), 429
 
 
 if __name__ == '__main__':
