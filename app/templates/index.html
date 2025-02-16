@@ -10,12 +10,21 @@
 </head>
 <body>
     <div class="container">
-        {% include 'partials/logo.html' %}  <h1 class="mb-4 text-center visually-hidden">Raccourcisseur d'URL</h1>
+        {% include 'partials/logo.html' %}
+        <h1 class="mb-4 text-center visually-hidden">Raccourcisseur d'URL</h1>
 
         <form method="POST" action="/">
             <div class="mb-3">
                 <label for="long_url" class="form-label">URL à raccourcir :</label>
                 <input type="url" class="form-control" id="long_url" name="long_url" placeholder="Entrez votre URL longue (avec https://)" required>
+            </div>
+             <div class="mb-3">
+                <label for="duration" class="form-label">Durée de vie :</label>
+                <select class="form-select" id="duration" name="duration">
+                    <option value="24h" selected>24 heures</option>
+                    <option value="48h">48 heures</option>
+                    <option value="1w">1 semaine</option>
+                </select>
             </div>
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary">Raccourcir</button>
