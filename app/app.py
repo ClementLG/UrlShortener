@@ -122,6 +122,11 @@ limiter = Limiter(
 @app.route('/', methods=['GET', 'POST'])
 @limiter.limit("5/minute")  # Limite specifique pour cette route
 def index():
+    # --- DEBUT DEBUG IP ---
+    logger.info(f"[DEBUG] request.remote_addr: {request.remote_addr}")
+    logger.info(f"[DEBUG] X-Forwarded-For: {request.headers.get('X-Forwarded-For')}")
+    logger.info(f"[DEBUG] X-Real-IP: {request.headers.get('X-Real-IP')}")
+    # --- FIN DEBUG IP ---
     if request.method == 'POST':
         long_url = request.form['long_url']
         duration = request.form.get('duration', '24h')  # Reupere la duree, 24h par defaut
