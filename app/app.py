@@ -2,71 +2,80 @@
 from flask import Flask, render_template, request, redirect, abort, g
 import string
 import random
-import sqlite3  # Utilisation de SQLite (plus de dictionnaire !)
+import sqlite3
 from urllib.parse import urlparse
 import datetime
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import logging  # Importez le module logging
-from logging.handlers import TimedRotatingFileHandler  # et TimedRotatingFileHandler
+import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
 import errno
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-# Basic config
+# --- Basic App Configuration ---
 app = Flask(__name__)
-# Configuration de ProxyFix pour qu'il fasse confiance aux en-têtes
-# X-Forwarded-* envoyés par le proxy (Traefik).
-# x_for=1 signifie qu'on fait confiance au premier proxy.
+# Configure ProxyFix to trust headers from a proxy (e.g., Traefik).
+# x_for=1 means we trust the first proxy in the chain.
 app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1
 )
-app.config['DATABASE'] = 'urls.db'  # Nom du fichier de la base de donnees
-# Configuration de Flask-Limiter
-app.config['RATELIMIT_DEFAULT'] = "200/day;50/hour;10/minute"  # Limites globales par defaut
-app.config['RATELIMIT_STRATEGY'] = 'moving-window'  # Algorithme
-app.config[
-    'RATELIMIT_STORAGE_URL'] = "memory://"  # Stockage en memoire (simple, mais redemarre a zero si l'app redemarre)
+app.config['DATABASE'] = 'urls.db'  # Database file name
 
-# Configuration du logging
-LOG_FILE = 'logs/app.log'  # Chemin RELATIF vers le fichier de log (dans un dossier 'logs')
+# --- Rate Limiting Configuration ---
+app.config['RATELIMIT_DEFAULT'] = "200/day;50/hour;10/minute"  # Default global limits
+app.config['RATELIMIT_STRATEGY'] = 'moving-window'  # Algorithm
+app.config['RATELIMIT_STORAGE_URL'] = "memory://"  # In-memory storage (resets on app restart)
+
+# --- Logging Configuration ---
+LOG_FILE = 'logs/app.log'  # Relative path to the log file
 LOG_LEVEL = logging.INFO
 
-# Creer un logger
+# Create logger
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 
-# Creer un handler pour la rotation des logs (hebdomadaire)
+# Create a handler for weekly log rotation
 handler = TimedRotatingFileHandler(LOG_FILE, when="W0", backupCount=4)
 handler.setLevel(LOG_LEVEL)
 
-# Creer un formateur
+# Create a formatter
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 
-# Ajouter le handler au logger
+# Add the handler to the logger
 logger.addHandler(handler)
 
-# Creer le repertoire de logs s'il n'existe pas
-log_dir = os.path.dirname(LOG_FILE)  # Extrait le repertoire du chemin du fichier
+# Create log directory if it doesn't exist
+log_dir = os.path.dirname(LOG_FILE)
 if not os.path.exists(log_dir):
     try:
-        os.makedirs(log_dir)  # Cree le repertoire (et les repertoires parents si necessaire)
+        os.makedirs(log_dir)
     except OSError as e:
-        if e.errno != errno.EEXIST:  # Leve l'exception si ce n'est pas une erreur "le dossier existe deja"
-            logger.exception("Impossible de creer le repertoire de logs :")  # Log l'erreur complete
-            raise  # et relance l'exception
+        if e.errno != errno.EEXIST:
+            logger.exception("Could not create log directory:")
+            raise
 
 
+# --- Database Management ---
 def get_db():
+    """Opens a new database connection if there is none yet for the current application context."""
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = sqlite3.connect(app.config['DATABASE'])
     return db
 
 
+@app.teardown_appcontext
+def close_connection(exception):
+    """Closes the database again at the end of the request."""
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+
 @app.cli.command('init-db')
-def init_db():
+def init_db_command():
     """Clear existing data and create new tables."""
     with app.app_context():
         db = get_db()
@@ -76,19 +85,15 @@ def init_db():
     print('Initialized the database.')
 
 
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
-
-
+# --- URL Utilities ---
 def generate_short_code(length=6):
+    """Generate a random short code."""
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
 
 def is_valid_url(url):
+    """Check if a URL is valid."""
     try:
         result = urlparse(url)
         return all([result.scheme, result.netloc])
@@ -97,25 +102,26 @@ def is_valid_url(url):
 
 
 def calculate_expiration_date(duration):
-    """Calcule la date d'expiration en fonction de la duree."""
+    """Calculate the expiration date based on the selected duration."""
     now = datetime.datetime.now()
     if duration == '24h':
-        return now + datetime.timedelta(seconds=15)
+        return now + datetime.timedelta(hours=24)
     elif duration == '48h':
         return now + datetime.timedelta(hours=48)
     elif duration == '1w':
         return now + datetime.timedelta(weeks=1)
-    else:  # Valeur par defaut (24h) - important pour la securite
-        return now + datetime.timedelta(seconds=15)
+    else:  # Default to 24h for security
+        return now + datetime.timedelta(hours=24)
 
 
 def cleanup_expired_urls():
-    """Supprime les URL expirees de la base de donnees."""
+    """Remove expired URLs from the database."""
     db = get_db()
     db.execute('DELETE FROM urls WHERE expiration_date < ?', [datetime.datetime.now()])
     db.commit()
 
 
+# --- Rate Limiter Initialization ---
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -124,19 +130,22 @@ limiter = Limiter(
 )
 
 
+# --- Routes ---
 @app.route('/', methods=['GET', 'POST'])
-@limiter.limit("5/minute")  # Limite specifique pour cette route
+@limiter.limit("5/minute")  # Specific limit for this route
 def index():
+    """Main page to create short URLs."""
     if request.method == 'POST':
         long_url = request.form['long_url']
-        duration = request.form.get('duration', '24h')  # Reupere la duree, 24h par defaut
+        duration = request.form.get('duration', '24h')  # Default to 24h
 
         if not is_valid_url(long_url):
-            logger.warning(f"Tentative de creation d'URL invalide - IP: {request.remote_addr} - URL: {long_url}")
-            return render_template('index.html', error="URL invalide.")
+            logger.warning(f"Invalid URL creation attempt - IP: {request.remote_addr} - URL: {long_url}")
+            return render_template('index.html', error="Invalid URL.")
 
         expiration_date = calculate_expiration_date(duration)
 
+        # Ensure the generated short code is unique
         while True:
             short_code = generate_short_code()
             db = get_db()
@@ -149,16 +158,16 @@ def index():
         db.commit()
         short_url = request.host_url + short_code
         logger.info(
-            f"URL creee - IP: {request.remote_addr} - URL longue: {long_url} - URL courte: {short_url} - Expiration: {expiration_date}")
+            f"URL created - IP: {request.remote_addr} - Long URL: {long_url} - Short URL: {short_url} - Expires: {expiration_date}")
         return render_template('index.html', short_url=short_url)
 
-    # logger.info(f"Accès a la page d'accueil - IP: {get_remote_IP()}")
     return render_template('index.html')
 
 
 @app.route('/<short_code>')
-@limiter.limit("10/minute")  # Limite specifique
+@limiter.limit("10/minute")  # Specific limit for this route
 def redirect_to_long_url(short_code):
+    """Redirects a short code to its corresponding long URL."""
     db = get_db()
     cur = db.execute('SELECT long_url, expiration_date FROM urls WHERE short_code = ?', [short_code])
     result = cur.fetchone()
@@ -169,26 +178,32 @@ def redirect_to_long_url(short_code):
 
         if datetime.datetime.now() < expiration_date:
             logger.info(
-                f"Acces a l'URL courte - IP: {request.remote_addr} - URL courte: {request.host_url}{short_code} - Redirection vers: {long_url}")
+                f"Redirecting short URL - IP: {request.remote_addr} - Short URL: {request.host_url}{short_code} - To: {long_url}")
             return redirect(long_url)
         else:
-            cleanup_expired_urls()
+            # Clean up the specific expired URL
+            db.execute('DELETE FROM urls WHERE short_code = ?', [short_code])
+            db.commit()
             logger.warning(
-                f"Acces a l'URL courte expiree - IP: {request.remote_addr} - URL courte: {request.host_url}{short_code}")
-            abort(404, description="Ce lien a expire.")  # Message d'erreur plus explicite
+                f"Attempted access to expired short URL - IP: {request.remote_addr} - Short URL: {request.host_url}{short_code}")
+            abort(404, description="This link has expired.")
     else:
         abort(404)
 
 
+# --- Error Handlers ---
 @app.errorhandler(404)
 def page_not_found(e):
-    logger.warning(f"Page non trouvee - IP: {request.remote_addr} - URL demandee: {request.url}")
-    return render_template('404.html', error_message=e.description), 404
+    """Handles 404 Not Found errors."""
+    logger.warning(f"Page not found (404) - IP: {request.remote_addr} - URL: {request.url}")
+    description = e.description if e.description else "Page not found."
+    return render_template('404.html', error_message=description), 404
 
 
-@app.errorhandler(429)  # Gerer le code d'erreur 429 (Too Many Requests)
+@app.errorhandler(429)
 def ratelimit_handler(e):
-    logger.warning(f"Limite de requetes atteinte - IP: {request.remote_addr}")
+    """Handles 429 Too Many Requests errors."""
+    logger.warning(f"Rate limit exceeded - IP: {request.remote_addr}")
     return render_template('429.html', limit=e.description), 429
 
 

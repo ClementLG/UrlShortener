@@ -1,17 +1,17 @@
-# Utiliser une image Python officielle comme image de base
+# Use an official Python image as a base image
 FROM python:3.9-slim-buster
 
-# Définir le répertoire de travail dans le conteneur
+# Set the working directory in the container
 WORKDIR /app
 
-# Copier les fichiers de l'application dans le conteneur
+# Copy the application files into the container
 COPY ./app /app
 
-# Installer les dépendances
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Exposer le port sur lequel l'application s'exécutera
+# Expose the port on which the application will run
 EXPOSE 5000
 
-# Commande pour exécuter l'application
+# Command to run the application
 CMD ["flask", "run", "--host=0.0.0.0"]

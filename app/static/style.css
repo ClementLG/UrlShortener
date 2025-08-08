@@ -17,23 +17,23 @@ body {
     font-weight: bold;
 }
 
-/* Style pour le logo (ajustez selon votre choix) */
+/* Style for the logo (adjust as you like) */
 .logo-container {
     text-align: center;
     margin-bottom: 1rem;
 }
 
 .logo-img {
-    max-width: 150px; /* Ajustez la taille maximale */
+    max-width: 150px; /* Adjust max size */
     height: auto;
 }
 
-.logo { /*pour le logo texte/icone*/
+.logo { /* for text/icon logo */
     font-size: 1.8rem;
     font-weight: bold;
     display: flex;
     align-items: center;
-    justify-content: center; /* Centrage horizontal du logo texte */
+    justify-content: center; /* Center the text logo horizontally */
     margin-bottom: 1rem;
 }
 

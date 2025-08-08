@@ -7,7 +7,7 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=development
     #ports:
-      #- "5000:5000" #uncomment to expose application
+      #- "5000:5000" # Uncomment to expose the application on your host
     volumes:
       - ../files/logvolume:/app/logs
     command: >
