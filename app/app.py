@@ -15,7 +15,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Basic config
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=3, x_proto=1, x_host=1, x_prefix=1)
 app.config['DATABASE'] = 'urls.db'  # Nom du fichier de la base de donnees
 # Configuration de Flask-Limiter
 app.config['RATELIMIT_DEFAULT'] = "200/day;50/hour;10/minute"  # Limites globales par defaut
