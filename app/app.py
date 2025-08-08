@@ -1,5 +1,6 @@
 
-from flask import Flask, render_template, request, redirect, abort, g
+from flask import Flask, render_template, request, redirect, abort, g, jsonify
+from flasgger import Swagger
 import string
 import random
 import sqlite3
@@ -15,12 +16,21 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # --- Basic App Configuration ---
 app = Flask(__name__)
+app.config['DATABASE'] = 'urls.db'  # Database file name
+
+# --- Swagger Configuration ---
+app.config['SWAGGER'] = {
+    'title': 'URL Shortener API',
+    'uiversion': 3,
+    "specs_route": "/apidocs/"
+}
+swagger = Swagger(app)
+
 # Configure ProxyFix to trust headers from a proxy (e.g., Traefik).
 # x_for=1 means we trust the first proxy in the chain.
 app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1
 )
-app.config['DATABASE'] = 'urls.db'  # Database file name
 
 # --- Rate Limiting Configuration ---
 app.config['RATELIMIT_DEFAULT'] = "200/day;50/hour;10/minute"  # Default global limits
@@ -131,43 +141,40 @@ limiter = Limiter(
 
 
 # --- Routes ---
-@app.route('/', methods=['GET', 'POST'])
-@limiter.limit("5/minute")  # Specific limit for this route
+@app.route('/', methods=['GET'])
 def index():
-    """Main page to create short URLs."""
-    if request.method == 'POST':
-        long_url = request.form['long_url']
-        duration = request.form.get('duration', '24h')  # Default to 24h
-
-        if not is_valid_url(long_url):
-            logger.warning(f"Invalid URL creation attempt - IP: {request.remote_addr} - URL: {long_url}")
-            return render_template('index.html', error="Invalid URL.")
-
-        expiration_date = calculate_expiration_date(duration)
-
-        # Ensure the generated short code is unique
-        while True:
-            short_code = generate_short_code()
-            db = get_db()
-            cur = db.execute('SELECT 1 FROM urls WHERE short_code = ?', [short_code])
-            if cur.fetchone() is None:
-                break
-
-        db.execute('INSERT INTO urls (short_code, long_url, expiration_date) VALUES (?, ?, ?)',
-                   [short_code, long_url, expiration_date])
-        db.commit()
-        short_url = request.host_url + short_code
-        logger.info(
-            f"URL created - IP: {request.remote_addr} - Long URL: {long_url} - Short URL: {short_url} - Expires: {expiration_date}")
-        return render_template('index.html', short_url=short_url)
-
+    """
+    Main page to create short URLs.
+    ---
+    get:
+      summary: Display the URL shortening form
+      responses:
+        200:
+          description: The HTML form for creating short URLs.
+    """
     return render_template('index.html')
 
 
 @app.route('/<short_code>')
 @limiter.limit("10/minute")  # Specific limit for this route
 def redirect_to_long_url(short_code):
-    """Redirects a short code to its corresponding long URL."""
+    """
+    Redirects a short code to its corresponding long URL.
+    ---
+    get:
+      summary: Redirect to the original URL
+      parameters:
+        - in: path
+          name: short_code
+          type: string
+          required: true
+          description: The short code to redirect.
+      responses:
+        302:
+          description: Redirects to the long URL.
+        404:
+          description: The short code is not found or has expired.
+    """
     db = get_db()
     cur = db.execute('SELECT long_url, expiration_date FROM urls WHERE short_code = ?', [short_code])
     result = cur.fetchone()
@@ -189,6 +196,76 @@ def redirect_to_long_url(short_code):
             abort(404, description="This link has expired.")
     else:
         abort(404)
+
+
+@app.route('/api/urls', methods=['POST'])
+@limiter.limit("5/minute")
+def create_short_url():
+    """
+    Create a new short URL
+    ---
+    post:
+      summary: Create a new short URL
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - long_url
+            properties:
+              long_url:
+                type: string
+                description: The original long URL to shorten.
+              duration:
+                type: string
+                enum: ['24h', '48h', '1w']
+                default: '24h'
+                description: The duration for which the short URL will be valid.
+      responses:
+        201:
+          description: Short URL created successfully.
+          schema:
+            type: object
+            properties:
+              short_url:
+                type: string
+                description: The generated short URL.
+        400:
+          description: Invalid URL provided.
+    """
+    data = request.get_json()
+    if not data or 'long_url' not in data:
+        return jsonify({'error': 'long_url is required'}), 400
+
+    long_url = data['long_url']
+    duration = data.get('duration', '24h')
+
+    if not is_valid_url(long_url):
+        logger.warning(f"Invalid URL creation attempt - IP: {request.remote_addr} - URL: {long_url}")
+        return jsonify({'error': 'Invalid URL'}), 400
+
+    expiration_date = calculate_expiration_date(duration)
+
+    while True:
+        short_code = generate_short_code()
+        db = get_db()
+        cur = db.execute('SELECT 1 FROM urls WHERE short_code = ?', [short_code])
+        if cur.fetchone() is None:
+            break
+
+    db.execute('INSERT INTO urls (short_code, long_url, expiration_date) VALUES (?, ?, ?)',
+               [short_code, long_url, expiration_date])
+    db.commit()
+    short_url = request.host_url + short_code
+    logger.info(
+        f"URL created - IP: {request.remote_addr} - Long URL: {long_url} - Short URL: {short_url} - Expires: {expiration_date}")
+    return jsonify({'short_url': short_url}), 201
 
 
 # --- Error Handlers ---
