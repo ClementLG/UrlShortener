@@ -2,14 +2,9 @@ version: '3.8'
 
 services:
   web:
-    build: .  # Construire l'image Docker à partir du Dockerfile dans le répertoire courant
-    #ports:
-      #- "5000:5000"  # Mapper le port 5000 de l'hôte au port 5000 du conteneur
+    build: .
     environment:
-      - FLASK_APP=app.py  # Variable d'environnement pour Flask
-      - FLASK_ENV=development # Mode développement (debug activé)
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
     volumes:
-      - logvolume:/app/logs
-
-volumes:
-  logvolume:
+      - ../files/logvolume:/app/logs
