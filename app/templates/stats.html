@@ -4,20 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>URL Statistics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>URL Statistics</h1>
-        {% if url_data %}
-            <p><strong>Short URL:</strong> <a href="{{ request.host_url }}{{ url_data.short_code }}">{{ request.host_url }}{{ url_data.short_code }}</a></p>
-            <p><strong>Original URL:</strong> <a href="{{ url_data.long_url }}">{{ url_data.long_url }}</a></p>
-            <p><strong>Clicks:</strong> {{ url_data.clicks }}</p>
-            <p><strong>Expiration Date:</strong> {{ url_data.expiration_date }}</p>
-        {% else %}
-            <p>URL not found.</p>
-        {% endif %}
-        <a href="/">Back to Home</a>
+        <div class="card p-4 p-md-5">
+            <div class="text-center mb-4">
+                <h1 class="h3">URL Statistics</h1>
+                <p class="text-muted">Detailed information for your shortened link</p>
+            </div>
+
+            {% if url_data %}
+                <div class="row text-center g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 border bg-light rounded-3">
+                            <i class="fas fa-mouse-pointer fa-2x text-primary mb-2"></i>
+                            <h2 class="h1 mb-0">{{ url_data.clicks }}</h2>
+                            <p class="mb-0 text-muted">Total Clicks</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border bg-light rounded-3">
+                            <i class="fas fa-calendar-times fa-2x text-danger mb-2"></i>
+                            <h3 class="h5 mb-0">Expires on</h3>
+                            <p class="mb-0 text-muted">{{ url_data.expiration_date }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
+                        <strong>Short URL</strong>
+                        <a href="{{ request.host_url }}{{ url_data.short_code }}" target="_blank" class="ms-auto">{{ request.host_url }}{{ url_data.short_code }}</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
+                        <strong>Original URL</strong>
+                        <a href="{{ url_data.long_url }}" target="_blank" class="ms-auto" style="word-break: break-all;">{{ url_data.long_url }}</a>
+                    </li>
+                </ul>
+
+            {% else %}
+                <div class="alert alert-warning text-center" role="alert">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <h4 class="alert-heading">Not Found</h4>
+                    <p>The requested URL was not found or has expired.</p>
+                </div>
+            {% endif %}
+
+            <div class="mt-4 text-center">
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Home
+                </a>
+            </div>
+        </div>
     </div>
 </body>
 </html>

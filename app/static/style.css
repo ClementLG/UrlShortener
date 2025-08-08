@@ -1,42 +1,124 @@
-body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background-color: #f8f9fa;
-}
-.container {
-    max-width: 500px;
-    width: 100%;
-    padding: 2rem;
-    border-radius: 0.5rem;
-    background-color: #fff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-.form-label {
-    font-weight: bold;
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+:root {
+    --bs-primary: #5865F2; /* A more modern, vibrant purple */
+    --bs-primary-rgb: 88, 101, 242;
+    --bs-secondary: #6c757d;
+    --bs-light: #f9f9f9;
+    --bs-dark: #23272A;
+    --bs-font-sans-serif: 'Poppins', sans-serif;
 }
 
-/* Style for the logo (adjust as you like) */
+body {
+    background: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+    color: var(--bs-dark);
+}
+
+.container {
+    max-width: 550px;
+    margin-top: 5rem;
+    margin-bottom: 5rem;
+}
+
+.card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.2) !important;
+}
+
 .logo-container {
     text-align: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .logo-img {
-    max-width: 150px; /* Adjust max size */
+    max-width: 140px;
     height: auto;
+    transition: transform 0.3s ease-in-out;
 }
 
-.logo { /* for text/icon logo */
-    font-size: 1.8rem;
-    font-weight: bold;
+.logo-img:hover {
+    transform: scale(1.05) rotate(-3deg);
+}
+
+.form-control, .form-select {
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.3s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+    border-color: var(--bs-primary);
+}
+
+.btn-primary {
+    padding: 0.8rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+#result .alert {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center; /* Center the text logo horizontally */
-    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
-.logo i{
-    margin-right: 0.3rem;
+/* Responsive Design Adjustments */
+@media (max-width: 768px) {
+    .container {
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .card {
+        padding: 2rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    body {
+        font-size: 0.95rem;
+    }
+
+    .card {
+        border-radius: 0;
+        box-shadow: none !important;
+        padding: 1.5rem !important;
+    }
+
+    .container {
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-left: 0;
+        padding-right: 0;
+        max-width: 100%;
+    }
+
+    .logo-img {
+        max-width: 120px;
+    }
+
+    #result .alert {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    #result .alert div:last-child {
+        margin-top: 1rem;
+    }
 }
