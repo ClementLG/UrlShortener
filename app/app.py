@@ -131,6 +131,7 @@ def cleanup_expired_urls():
 limiter = Limiter(
     get_remote_address,
     app=app,
+    default_limits=[app.config['RATELIMIT_DEFAULT']],
     storage_uri=app.config['RATELIMIT_STORAGE_URL'],
     strategy=app.config['RATELIMIT_STRATEGY']
 )
@@ -152,7 +153,7 @@ def index():
 
 
 @app.route('/<short_code>')
-@limiter.limit("10/minute")  # Specific limit for this route
+@limiter.limit(app.config['RATELIMIT_REDIRECT'])
 def redirect_to_long_url(short_code):
     """
     Redirects a short code to its corresponding long URL.
@@ -219,7 +220,7 @@ def url_stats(short_code):
 
 
 @app.route('/api/urls', methods=['POST'])
-@limiter.limit("5/minute")
+@limiter.limit(app.config['RATELIMIT_API'])
 def create_short_url():
     """
     Create a new short URL
