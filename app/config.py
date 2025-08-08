@@ -6,7 +6,7 @@ class Config:
     DEBUG = False
     TESTING = False
     DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:///urls.db')
-    RATELIMIT_DEFAULT = "200/day;50/hour;10/minute"
+    RATELIMIT_DEFAULT = "10/day;6/hour;1/minute"
     RATELIMIT_STRATEGY = 'moving-window'
     RATELIMIT_STORAGE_URL = "memory://"
     LOG_FILE = 'logs/app.log'
