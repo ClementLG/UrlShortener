@@ -10,31 +10,33 @@
 </head>
 <body>
     <div class="container">
-        {% include 'partials/logo.html' %}
-        <h1 class="mb-4 text-center visually-hidden">URL Shortener</h1>
+        <div class="card p-4 p-md-5">
+            {% include 'partials/logo.html' %}
+            <h1 class="h3 mb-4 text-center">URL Shortener</h1>
 
-        <form id="shorten-form">
-            <div class="mb-3">
-                <label for="long_url" class="form-label">URL to shorten:</label>
-                <input type="url" class="form-control" id="long_url" name="long_url" placeholder="Enter your long URL (with https://)" required>
-            </div>
-            <div class="mb-3">
-                <label for="duration" class="form-label">Lifetime:</label>
-                <select class="form-select" id="duration" name="duration">
-                    <option value="24h" selected>24 hours</option>
-                    <option value="48h">48 hours</option>
-                    <option value="1w">1 week</option>
-                </select>
-            </div>
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary">Shorten</button>
-            </div>
-        </form>
+            <form id="shorten-form">
+                <div class="form-floating mb-3">
+                    <input type="url" class="form-control" id="long_url" name="long_url" placeholder="Enter your long URL" required>
+                    <label for="long_url">URL to shorten</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <select class="form-select" id="duration" name="duration">
+                        <option value="24h" selected>24 hours</option>
+                        <option value="48h">48 hours</option>
+                        <option value="1w">1 week</option>
+                    </select>
+                    <label for="duration">Lifetime</label>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">Shorten</button>
+                </div>
+            </form>
 
-        <div id="result" class="mt-4"></div>
+            <div id="result" class="mt-4"></div>
 
-        <div class="mt-4 text-center">
-            <a href="/apidocs/" target="_blank">API Documentation</a>
+            <div class="mt-4 text-center">
+                <a href="/apidocs/" target="_blank">API Documentation</a>
+            </div>
         </div>
     </div>
 
@@ -45,6 +47,10 @@
             const longUrl = document.getElementById('long_url').value;
             const duration = document.getElementById('duration').value;
             const resultDiv = document.getElementById('result');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Shortening...`;
 
             const response = await fetch('/api/urls', {
                 method: 'POST',
@@ -62,18 +68,25 @@
             if (response.ok) {
                 resultDiv.innerHTML = `
                     <div class="alert alert-success" role="alert">
-                        Shortened URL: <a href="${data.short_url}" target="_blank">${data.short_url}</a>
-                        <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="copyToClipboard('${data.short_url}')">Copy</button>
-                        <a href="/stats/${data.short_url.split('/').pop()}" class="btn btn-outline-info btn-sm ms-2">Stats</a>
+                        <div>
+                            <strong>Success!</strong> Your short URL is ready:
+                            <a href="${data.short_url}" target="_blank" class="alert-link">${data.short_url}</a>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-light" onclick="copyToClipboard('${data.short_url}')">Copy</button>
+                            <a href="/stats/${data.short_url.split('/').pop()}" class="btn btn-sm btn-info">Stats</a>
+                        </div>
                     </div>
                 `;
             } else {
                 resultDiv.innerHTML = `
                     <div class="alert alert-danger" role="alert">
-                        ${data.error}
+                        <strong>Error:</strong> ${data.error}
                     </div>
                 `;
             }
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Shorten';
             return false;
         });
 
