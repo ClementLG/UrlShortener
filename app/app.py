@@ -11,9 +11,11 @@ import logging  # Importez le module logging
 from logging.handlers import TimedRotatingFileHandler  # et TimedRotatingFileHandler
 import os
 import errno
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Basic config
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config['DATABASE'] = 'urls.db'  # Nom du fichier de la base de donnees
 # Configuration de Flask-Limiter
 app.config['RATELIMIT_DEFAULT'] = "200/day;50/hour;10/minute"  # Limites globales par defaut
@@ -109,33 +111,8 @@ def cleanup_expired_urls():
     db.commit()
 
 
-def get_remote_ip():
-    """
-    Récupère l'adresse IP du client X-Forwarded-For, X-Real-IP
-    et en dernier recours, request.remote_addr. Gère les erreurs et valeurs nulles.
-    """
-    try:
-        x_forwarded_for = request.headers.get('X-Forwarded-For')
-        if x_forwarded_for:
-            # Extraction de la première IP, gestion des erreurs potentielles
-            client_ip = x_forwarded_for.split(',')[0].strip()
-            if client_ip:  # Vérifier si l'IP extraite n'est pas vide
-                return client_ip
-
-        x_real_ip = request.headers.get('X-Real-IP')
-        if x_real_ip:
-            client_ip = x_real_ip.strip()
-            if client_ip:  # Vérifier si l'IP extraite n'est pas vide
-                return client_ip
-
-    except Exception:  # Capturer les erreurs de parsing ou d'index
-        pass  # Ignorer l'erreur et passer à la solution de repli
-
-    return request.remote_addr  # Solution de repli
-
-
 limiter = Limiter(
-    get_remote_ip,
+    get_remote_address,
     app=app,
     storage_uri=app.config['RATELIMIT_STORAGE_URL'],
     strategy=app.config['RATELIMIT_STRATEGY']
@@ -150,7 +127,7 @@ def index():
         duration = request.form.get('duration', '24h')  # Reupere la duree, 24h par defaut
 
         if not is_valid_url(long_url):
-            logger.warning(f"Tentative de creation d'URL invalide - IP: {get_remote_ip()} - URL: {long_url}")
+            logger.warning(f"Tentative de creation d'URL invalide - IP: {request.remote_addr} - URL: {long_url}")
             return render_template('index.html', error="URL invalide.")
 
         expiration_date = calculate_expiration_date(duration)
@@ -167,7 +144,7 @@ def index():
         db.commit()
         short_url = request.host_url + short_code
         logger.info(
-            f"URL creee - IP: {get_remote_ip()} - URL longue: {long_url} - URL courte: {short_url} - Expiration: {expiration_date}")
+            f"URL creee - IP: {request.remote_addr} - URL longue: {long_url} - URL courte: {short_url} - Expiration: {expiration_date}")
         return render_template('index.html', short_url=short_url)
 
     # logger.info(f"Accès a la page d'accueil - IP: {get_remote_IP()}")
@@ -187,12 +164,12 @@ def redirect_to_long_url(short_code):
 
         if datetime.datetime.now() < expiration_date:
             logger.info(
-                f"Acces a l'URL courte - IP: {get_remote_ip()} - URL courte: {request.host_url}{short_code} - Redirection vers: {long_url}")
+                f"Acces a l'URL courte - IP: {request.remote_addr} - URL courte: {request.host_url}{short_code} - Redirection vers: {long_url}")
             return redirect(long_url)
         else:
             cleanup_expired_urls()
             logger.warning(
-                f"Acces a l'URL courte expiree - IP: {get_remote_ip()} - URL courte: {request.host_url}{short_code}")
+                f"Acces a l'URL courte expiree - IP: {request.remote_addr} - URL courte: {request.host_url}{short_code}")
             abort(404, description="Ce lien a expire.")  # Message d'erreur plus explicite
     else:
         abort(404)
@@ -200,13 +177,13 @@ def redirect_to_long_url(short_code):
 
 @app.errorhandler(404)
 def page_not_found(e):
-    logger.warning(f"Page non trouvee - IP: {get_remote_ip()} - URL demandee: {request.url}")
+    logger.warning(f"Page non trouvee - IP: {request.remote_addr} - URL demandee: {request.url}")
     return render_template('404.html', error_message=e.description), 404
 
 
 @app.errorhandler(429)  # Gerer le code d'erreur 429 (Too Many Requests)
 def ratelimit_handler(e):
-    logger.warning(f"Limite de requetes atteinte - IP: {get_remote_ip()}")
+    logger.warning(f"Limite de requetes atteinte - IP: {request.remote_addr}")
     return render_template('429.html', limit=e.description), 429
 
 
