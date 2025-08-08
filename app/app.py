@@ -14,9 +14,11 @@ import os
 import errno
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from config import config_by_name
+
 # --- Basic App Configuration ---
 app = Flask(__name__)
-app.config['DATABASE'] = 'urls.db'  # Database file name
+app.config.from_object(config_by_name[os.getenv('FLASK_ENV') or 'development'])
 
 # --- Swagger Configuration ---
 app.config['SWAGGER'] = {
@@ -32,14 +34,9 @@ app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1
 )
 
-# --- Rate Limiting Configuration ---
-app.config['RATELIMIT_DEFAULT'] = "200/day;50/hour;10/minute"  # Default global limits
-app.config['RATELIMIT_STRATEGY'] = 'moving-window'  # Algorithm
-app.config['RATELIMIT_STORAGE_URL'] = "memory://"  # In-memory storage (resets on app restart)
-
 # --- Logging Configuration ---
-LOG_FILE = 'logs/app.log'  # Relative path to the log file
-LOG_LEVEL = logging.INFO
+LOG_FILE = app.config['LOG_FILE']
+LOG_LEVEL = app.config['LOG_LEVEL']
 
 # Create logger
 logger = logging.getLogger(__name__)
@@ -72,7 +69,7 @@ def get_db():
     """Opens a new database connection if there is none yet for the current application context."""
     db = getattr(g, '_database', None)
     if db is None:
-        db = g._database = sqlite3.connect(app.config['DATABASE'])
+        db = g._database = sqlite3.connect(app.config['DATABASE_URI'].replace('sqlite:///', ''))
     return db
 
 
