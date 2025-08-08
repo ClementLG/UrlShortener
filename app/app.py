@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, redirect, abort, g, jsonify
 from flasgger import Swagger
 import string
@@ -181,6 +180,8 @@ def redirect_to_long_url(short_code):
         expiration_date = datetime.datetime.strptime(expiration_date_str, '%Y-%m-%d %H:%M:%S.%f')
 
         if datetime.datetime.now() < expiration_date:
+            db.execute('UPDATE urls SET clicks = clicks + 1 WHERE short_code = ?', [short_code])
+            db.commit()
             logger.info(
                 f"Redirecting short URL - IP: {request.remote_addr} - Short URL: {request.host_url}{short_code} - To: {long_url}")
             return redirect(long_url)
@@ -191,6 +192,28 @@ def redirect_to_long_url(short_code):
             logger.warning(
                 f"Attempted access to expired short URL - IP: {request.remote_addr} - Short URL: {request.host_url}{short_code}")
             abort(404, description="This link has expired.")
+    else:
+        abort(404)
+
+
+@app.route('/stats/<short_code>')
+def url_stats(short_code):
+    """
+    Display statistics for a short URL.
+    """
+    db = get_db()
+    cur = db.execute('SELECT long_url, expiration_date, clicks FROM urls WHERE short_code = ?', [short_code])
+    result = cur.fetchone()
+
+    if result:
+        long_url, expiration_date_str, clicks = result
+        url_data = {
+            'short_code': short_code,
+            'long_url': long_url,
+            'expiration_date': expiration_date_str,
+            'clicks': clicks
+        }
+        return render_template('stats.html', url_data=url_data)
     else:
         abort(404)
 
@@ -279,5 +302,3 @@ def ratelimit_handler(e):
     """Handles 429 Too Many Requests errors."""
     logger.warning(f"Rate limit exceeded - IP: {request.remote_addr}")
     return render_template('429.html', limit=e.description), 429
-
-
