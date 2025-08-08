@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request, redirect, abort, g
 import string
 import random
@@ -57,12 +58,15 @@ def get_db():
     return db
 
 
+@app.cli.command('init-db')
 def init_db():
+    """Clear existing data and create new tables."""
     with app.app_context():
         db = get_db()
-        with open('schema.sql', mode='r') as f:  # Utilisation du chemin relatif correct
+        with app.open_resource('schema.sql', mode='r') as f:
             db.cursor().executescript(f.read())
         db.commit()
+    print('Initialized the database.')
 
 
 @app.teardown_appcontext
@@ -206,6 +210,3 @@ def ratelimit_handler(e):
     return render_template('429.html', limit=e.description), 429
 
 
-if __name__ == '__main__':
-    init_db()
-    app.run(debug=True)
