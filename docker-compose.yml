@@ -9,4 +9,7 @@ services:
       - FLASK_APP=app.py  # Variable d'environnement pour Flask
       - FLASK_ENV=development # Mode développement (debug activé)
     volumes:
-      - ./logs:/app/logs
+      - logvolume:/app/logs
+
+volumes:
+  logvolume:
