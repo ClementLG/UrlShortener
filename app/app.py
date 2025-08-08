@@ -15,7 +15,12 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Basic config
 app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=3, x_proto=1, x_host=1, x_prefix=1)
+# Le nombre de proxys devant l'application.
+# 1 pour un seul proxy (ex: Traefik seul).
+# 2 pour une configuration courante (ex: Load Balancer -> Traefik).
+# Ajustez cette valeur via la variable d'environnement PROXIES_COUNT si votre infrastructure change.
+proxies_count = int(os.environ.get('PROXIES_COUNT', 2))
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies_count, x_proto=1, x_host=1, x_prefix=1)
 app.config['DATABASE'] = 'urls.db'  # Nom du fichier de la base de donnees
 # Configuration de Flask-Limiter
 app.config['RATELIMIT_DEFAULT'] = "200/day;50/hour;10/minute"  # Limites globales par defaut
@@ -122,11 +127,6 @@ limiter = Limiter(
 @app.route('/', methods=['GET', 'POST'])
 @limiter.limit("5/minute")  # Limite specifique pour cette route
 def index():
-    # --- DEBUT DEBUG IP ---
-    logger.info(f"[DEBUG] request.remote_addr: {request.remote_addr}")
-    logger.info(f"[DEBUG] X-Forwarded-For: {request.headers.get('X-Forwarded-For')}")
-    logger.info(f"[DEBUG] X-Real-IP: {request.headers.get('X-Real-IP')}")
-    # --- FIN DEBUG IP ---
     if request.method == 'POST':
         long_url = request.form['long_url']
         duration = request.form.get('duration', '24h')  # Reupere la duree, 24h par defaut
