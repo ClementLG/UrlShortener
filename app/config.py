@@ -6,6 +6,8 @@ class Config:
     DEBUG = False
     TESTING = False
     DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:///urls.db')
+    SHORT_CODE_LENGTH = 6
+    LONG_CODE_LENGTH = 2000
     # --- Rate Limiting ---
     # See https://flask-limiter.readthedocs.io/en/stable/ for details.
     # Default rate limit for all routes.

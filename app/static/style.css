@@ -78,6 +78,10 @@ body {
     gap: 1rem;
 }
 
+.alert-link.long-url {
+   word-break: break-all;
+}
+
 /* Responsive Design Adjustments */
 @media (max-width: 768px) {
     .container {
@@ -169,4 +173,8 @@ body {
 .btn-link:hover, .btn-link:focus {
     color: var(--bs-primary);
     text-decoration: underline;
+}
+.list-group-item > .long-url {
+    word-break: break-all;
+    text-align: right;
 }

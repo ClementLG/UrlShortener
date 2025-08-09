@@ -37,11 +37,11 @@
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
                         <strong>Short URL</strong>
-                        <a href="{{ request.host_url }}{{ url_data.short_code }}" target="_blank" class="ms-auto">{{ request.host_url }}{{ url_data.short_code }}</a>
+                        <a href="{{ request.host_url }}{{ url_data.short_code }}" target="_blank" class="long-url">{{ request.host_url }}{{ url_data.short_code }}</a>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
                         <strong>Original URL</strong>
-                        <a href="{{ url_data.long_url }}" target="_blank" class="ms-auto" style="word-break: break-all;">{{ url_data.long_url }}</a>
+                        <a href="{{ url_data.long_url }}" target="_blank" class="long-url">{{ url_data.long_url }}</a>
                     </li>
                    {% if url_data.uses_limit %}
                    <li class="list-group-item d-flex justify-content-between align-items-center">

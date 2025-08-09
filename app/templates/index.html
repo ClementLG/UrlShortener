@@ -38,6 +38,12 @@
                        <input type="number" class="form-control" id="uses_limit" name="uses_limit" placeholder="e.g., 10" min="1">
                        <label for="uses_limit">Usage Limit (optional)</label>
                    </div>
+                   <div class="form-check mb-3">
+                       <input class="form-check-input" type="checkbox" id="long_url_option" name="long_url_option">
+                       <label class="form-check-label" for="long_url_option">
+                           Generate a very long URL
+                       </label>
+                   </div>
                </div>
                 <div class="d-grid">
                     <button type="submit" class="btn btn-primary btn-lg">Shorten</button>
@@ -71,6 +77,7 @@
             const longUrl = document.getElementById('long_url').value;
             const duration = document.getElementById('duration').value;
             const usesLimit = document.getElementById('uses_limit').value;
+            const longUrlOption = document.getElementById('long_url_option').checked;
             const resultDiv = document.getElementById('result');
             const submitButton = e.target.querySelector('button[type="submit"]');
 
@@ -85,7 +92,8 @@
                 body: JSON.stringify({
                     long_url: longUrl,
                     duration: duration,
-                    uses_limit: usesLimit ? parseInt(usesLimit, 10) : null
+                    uses_limit: usesLimit ? parseInt(usesLimit, 10) : null,
+                    long_url_option: longUrlOption
                 })
             });
 
@@ -96,7 +104,7 @@
                     <div class="alert alert-success" role="alert">
                         <div>
                             <strong>Success!</strong> Your short URL is ready:
-                            <a href="${data.short_url}" target="_blank" class="alert-link">${data.short_url}</a>
+                            <a href="${data.short_url}" target="_blank" class="alert-link long-url">${data.short_url}</a>
                         </div>
                         <div>
                             <button type="button" class="btn btn-sm btn-light" onclick="copyToClipboard('${data.short_url}')">Copy</button>

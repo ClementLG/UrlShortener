@@ -94,8 +94,10 @@ def init_db_command():
 
 
 # --- URL Utilities ---
-def generate_short_code(length=6):
+def generate_short_code(length=None):
     """Generate a random short code."""
+    if length is None:
+        length = app.config['SHORT_CODE_LENGTH']
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
@@ -295,6 +297,7 @@ def create_short_url():
     long_url = data['long_url']
     duration = data.get('duration', '24h')
     uses_limit = data.get('uses_limit')
+    long_url_option = data.get('long_url_option', False)
 
     if uses_limit is not None:
         try:
@@ -315,7 +318,10 @@ def create_short_url():
     expiration_date = calculate_expiration_date(duration)
 
     while True:
-        short_code = generate_short_code()
+        if long_url_option:
+            short_code = generate_short_code(length=app.config['LONG_CODE_LENGTH'])
+        else:
+            short_code = generate_short_code()
         db = get_db()
         cur = db.execute('SELECT 1 FROM urls WHERE short_code = ?', [short_code])
         if cur.fetchone() is None:
