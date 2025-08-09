@@ -4,5 +4,6 @@ CREATE TABLE urls (
   short_code TEXT UNIQUE NOT NULL,
   long_url TEXT NOT NULL,
   expiration_date DATETIME NOT NULL,
-  clicks INTEGER NOT NULL DEFAULT 0
+  clicks INTEGER NOT NULL DEFAULT 0,
+  uses_limit INTEGER DEFAULT NULL
 );

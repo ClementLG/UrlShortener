@@ -186,26 +186,32 @@ def redirect_to_long_url(short_code):
           description: The short code is not found or has expired.
     """
     db = get_db()
-    cur = db.execute('SELECT long_url, expiration_date FROM urls WHERE short_code = ?', [short_code])
+    cur = db.execute('SELECT long_url, expiration_date, clicks, uses_limit FROM urls WHERE short_code = ?', [short_code])
     result = cur.fetchone()
 
     if result:
-        long_url, expiration_date_str = result
+        long_url, expiration_date_str, clicks, uses_limit = result
         expiration_date = datetime.datetime.strptime(expiration_date_str, '%Y-%m-%d %H:%M:%S.%f')
 
-        if datetime.datetime.now() < expiration_date:
-            db.execute('UPDATE urls SET clicks = clicks + 1 WHERE short_code = ?', [short_code])
-            db.commit()
-            logger.info(
-                f"Redirecting short URL - IP: {request.remote_addr} - Short URL: {request.host_url}{short_code} - To: {long_url}")
-            return redirect(long_url)
-        else:
-            # Clean up the specific expired URL
+        if datetime.datetime.now() >= expiration_date:
             db.execute('DELETE FROM urls WHERE short_code = ?', [short_code])
             db.commit()
             logger.warning(
                 f"Attempted access to expired short URL - IP: {request.remote_addr} - Short URL: {request.host_url}{short_code}")
             abort(404, description="This link has expired.")
+            return
+
+        if uses_limit is not None and clicks >= uses_limit:
+            logger.warning(
+                f"Attempted access to depleted short URL - IP: {request.remote_addr} - Short URL: {request.host_url}{short_code}")
+            abort(404, description="This link has reached its usage limit.")
+            return
+
+        db.execute('UPDATE urls SET clicks = clicks + 1 WHERE short_code = ?', [short_code])
+        db.commit()
+        logger.info(
+            f"Redirecting short URL - IP: {request.remote_addr} - Short URL: {request.host_url}{short_code} - To: {long_url}")
+        return redirect(long_url)
     else:
         abort(404)
 
@@ -216,16 +222,18 @@ def url_stats(short_code):
     Display statistics for a short URL.
     """
     db = get_db()
-    cur = db.execute('SELECT long_url, expiration_date, clicks FROM urls WHERE short_code = ?', [short_code])
+    cur = db.execute('SELECT long_url, expiration_date, clicks, uses_limit FROM urls WHERE short_code = ?', [short_code])
     result = cur.fetchone()
 
     if result:
-        long_url, expiration_date_str, clicks = result
+        long_url, expiration_date_str, clicks, uses_limit = result
         url_data = {
             'short_code': short_code,
             'long_url': long_url,
             'expiration_date': expiration_date_str,
-            'clicks': clicks
+            'clicks': clicks,
+            'uses_limit': uses_limit,
+            'remaining_uses': uses_limit - clicks if uses_limit is not None else 'Unlimited'
         }
         return render_template('stats.html', url_data=url_data)
     else:
@@ -261,6 +269,9 @@ def create_short_url():
                 enum: ['24h', '48h', '1w']
                 default: '24h'
                 description: The duration for which the short URL will be valid.
+              uses_limit:
+                type: integer
+                description: The maximum number of times the short URL can be used.
       responses:
         201:
           description: Short URL created successfully.
@@ -283,6 +294,15 @@ def create_short_url():
 
     long_url = data['long_url']
     duration = data.get('duration', '24h')
+    uses_limit = data.get('uses_limit')
+
+    if uses_limit is not None:
+        try:
+            uses_limit = int(uses_limit)
+            if uses_limit <= 0:
+                abort(400, description="The 'uses_limit' must be a positive integer.")
+        except (ValueError, TypeError):
+            abort(400, description="The 'uses_limit' must be a valid integer.")
 
     # Automatically add https:// if no scheme is present
     if not urlparse(long_url).scheme:
@@ -301,12 +321,12 @@ def create_short_url():
         if cur.fetchone() is None:
             break
 
-    db.execute('INSERT INTO urls (short_code, long_url, expiration_date) VALUES (?, ?, ?)',
-               [short_code, long_url, expiration_date])
+    db.execute('INSERT INTO urls (short_code, long_url, expiration_date, uses_limit) VALUES (?, ?, ?, ?)',
+               [short_code, long_url, expiration_date, uses_limit])
     db.commit()
     short_url = request.host_url + short_code
     logger.info(
-        f"URL created - IP: {request.remote_addr} - Long URL: {long_url} - Short URL: {short_url} - Expires: {expiration_date}")
+        f"URL created - IP: {request.remote_addr} - Long URL: {long_url} - Short URL: {short_url} - Expires: {expiration_date} - Uses Limit: {uses_limit or 'None'}")
     return jsonify({'short_url': short_url}), 201
 
 

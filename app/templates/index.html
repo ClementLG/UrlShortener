@@ -27,6 +27,18 @@
                     </select>
                     <label for="duration">Lifetime</label>
                 </div>
+               <div class="text-center mb-3">
+                   <button class="btn btn-link btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advanced-options" aria-expanded="false" aria-controls="advanced-options">
+                       Advanced options
+                   </button>
+               </div>
+
+               <div class="collapse" id="advanced-options">
+                   <div class="form-floating mb-3">
+                       <input type="number" class="form-control" id="uses_limit" name="uses_limit" placeholder="e.g., 10" min="1">
+                       <label for="uses_limit">Usage Limit (optional)</label>
+                   </div>
+               </div>
                 <div class="d-grid">
                     <button type="submit" class="btn btn-primary btn-lg">Shorten</button>
                 </div>
@@ -58,6 +70,7 @@
             e.preventDefault();
             const longUrl = document.getElementById('long_url').value;
             const duration = document.getElementById('duration').value;
+            const usesLimit = document.getElementById('uses_limit').value;
             const resultDiv = document.getElementById('result');
             const submitButton = e.target.querySelector('button[type="submit"]');
 
@@ -71,7 +84,8 @@
                 },
                 body: JSON.stringify({
                     long_url: longUrl,
-                    duration: duration
+                    duration: duration,
+                    uses_limit: usesLimit ? parseInt(usesLimit, 10) : null
                 })
             });
 

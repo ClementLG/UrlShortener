@@ -43,6 +43,16 @@
                         <strong>Original URL</strong>
                         <a href="{{ url_data.long_url }}" target="_blank" class="ms-auto" style="word-break: break-all;">{{ url_data.long_url }}</a>
                     </li>
+                   {% if url_data.uses_limit %}
+                   <li class="list-group-item d-flex justify-content-between align-items-center">
+                       <strong>Usage Limit</strong>
+                       <span>{{ url_data.uses_limit }}</span>
+                   </li>
+                   <li class="list-group-item d-flex justify-content-between align-items-center">
+                       <strong>Remaining Uses</strong>
+                       <span>{{ url_data.remaining_uses }}</span>
+                   </li>
+                   {% endif %}
                 </ul>
 
             {% else %}
