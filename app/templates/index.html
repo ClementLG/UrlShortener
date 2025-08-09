@@ -34,6 +34,18 @@
 
             <div id="result" class="mt-4"></div>
 
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#history-collapse" aria-expanded="false" aria-controls="history-collapse" id="history-btn" disabled>
+                    View History
+                </button>
+            </div>
+
+            <div class="collapse mt-3" id="history-collapse">
+                <div class="card card-body" id="history">
+                    <!-- History will be injected here -->
+                </div>
+            </div>
+
             <div class="mt-4 text-center">
                 <a href="/apidocs/" target="_blank">API Documentation</a>
             </div>
@@ -78,6 +90,8 @@
                         </div>
                     </div>
                 `;
+                saveUrlToHistory(longUrl, data.short_url);
+                displayHistory();
             } else {
                 resultDiv.innerHTML = `
                     <div class="alert alert-danger" role="alert">
@@ -97,6 +111,47 @@
                 console.error('Could not copy text: ', err);
             });
         }
+
+        function saveUrlToHistory(longUrl, shortUrl) {
+            let history = JSON.parse(localStorage.getItem('url_history')) || [];
+            history.unshift({ long_url: longUrl, short_url: shortUrl });
+            if (history.length > 10) {
+                history.pop();
+            }
+            localStorage.setItem('url_history', JSON.stringify(history));
+        }
+
+        function displayHistory() {
+            const historyDiv = document.getElementById('history');
+            const historyBtn = document.getElementById('history-btn');
+            const history = JSON.parse(localStorage.getItem('url_history')) || [];
+
+            if (history.length > 0) {
+                historyBtn.disabled = false;
+                let html = '<ul class="list-group list-group-flush">';
+                history.forEach(item => {
+                    const shortCode = item.short_url.split('/').pop();
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="long-url-container">
+                                <a href="${item.short_url}" target="_blank" title="${item.long_url}">${item.long_url}</a>
+                            </div>
+                            <div class="text-nowrap">
+                                <a href="/stats/${shortCode}" class="btn btn-sm btn-info">Stats</a>
+                                <button type="button" class="btn btn-sm btn-light ms-2" onclick="copyToClipboard('${item.short_url}')">Copy</button>
+                            </div>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                historyDiv.innerHTML = html;
+            } else {
+                historyBtn.disabled = true;
+                historyDiv.innerHTML = '<p class="text-center text-muted">No history yet.</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', displayHistory);
     </script>
 </body>
 </html>

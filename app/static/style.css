@@ -122,3 +122,40 @@ body {
         margin-top: 1rem;
     }
 }
+/* History Section Styles */
+#history-collapse .card-body {
+    padding: 0;
+    max-height: 300px; /* Limit height */
+    overflow-y: auto;  /* Add scrollbar when needed */
+}
+
+#history-collapse .list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+#history-collapse .list-group-item:first-child {
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+#history-collapse .list-group-item:last-child {
+    border-bottom: none;
+}
+
+.long-url-container {
+    max-width: 55%; /* Adjust as needed */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.long-url-container a {
+    color: var(--bs-dark);
+    text-decoration: none;
+}
+
+.long-url-container a:hover {
+    text-decoration: underline;
+}
