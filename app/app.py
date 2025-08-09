@@ -103,8 +103,19 @@ def generate_short_code(length=6):
 def is_valid_url(url):
     """Check if a URL is valid."""
     try:
+        # After potentially adding a scheme, a simple check for a netloc is sufficient.
         result = urlparse(url)
-        return all([result.scheme, result.netloc])
+        if not result.netloc:
+            return False
+        # This regex provides a much stronger validation for the domain structure.
+        import re
+        # This regex checks for a valid domain name, allowing for subdomains.
+        # It ensures that parts of the domain are separated by dots,
+        # and the TLD is at least two characters long. It disallows invalid characters.
+        pattern = re.compile(
+            r'^(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+)(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)$',
+            re.IGNORECASE)
+        return re.match(pattern, result.netloc) is not None
     except ValueError:
         return False
 
@@ -272,6 +283,10 @@ def create_short_url():
 
     long_url = data['long_url']
     duration = data.get('duration', '24h')
+
+    # Automatically add https:// if no scheme is present
+    if not urlparse(long_url).scheme:
+        long_url = 'https://' + long_url
 
     if not is_valid_url(long_url):
         logger.warning(f"Invalid URL creation attempt - IP: {request.remote_addr} - URL: {long_url}")
