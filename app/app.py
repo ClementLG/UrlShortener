@@ -13,11 +13,13 @@ import os
 import errno
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from config import config_by_name
+from .config import config_by_name
+from app.errors import errors_bp
 
 # --- Basic App Configuration ---
 app = Flask(__name__)
 app.config.from_object(config_by_name[os.getenv('FLASK_ENV') or 'development'])
+app.register_blueprint(errors_bp)
 
 # --- Swagger Configuration ---
 app.config['SWAGGER'] = {
@@ -262,14 +264,14 @@ def create_short_url():
     """
     data = request.get_json()
     if not data or 'long_url' not in data:
-        return jsonify({'error': 'long_url is required'}), 400
+        abort(400, description="The 'long_url' parameter is required.")
 
     long_url = data['long_url']
     duration = data.get('duration', '24h')
 
     if not is_valid_url(long_url):
         logger.warning(f"Invalid URL creation attempt - IP: {request.remote_addr} - URL: {long_url}")
-        return jsonify({'error': 'Invalid URL'}), 400
+        abort(400, description="The provided URL is not valid.")
 
     expiration_date = calculate_expiration_date(duration)
 
@@ -289,17 +291,23 @@ def create_short_url():
     return jsonify({'short_url': short_url}), 201
 
 
-# --- Error Handlers ---
-@app.errorhandler(404)
-def page_not_found(e):
-    """Handles 404 Not Found errors."""
-    logger.warning(f"Page not found (404) - IP: {request.remote_addr} - URL: {request.url}")
-    description = e.description if e.description else "Page not found."
-    return render_template('404.html', error_message=description), 404
+# --- Routes de test pour les erreurs ---
+@app.route('/test/error/<int:error_code>')
+def test_error(error_code):
+    """
+    Route de test pour déclencher des erreurs HTTP.
+    Utilisez /test/error/400, /test/error/404, /test/error/429, /test/error/500
+    """
+    if error_code == 400:
+        abort(400, description="Ceci est un test de page 400 (Bad Request).")
+    elif error_code == 404:
+        abort(404, description="Ceci est un test de page 404 (Not Found).")
+    elif error_code == 429:
+        abort(429, description="100 per minute")  # La description simule la limite de taux
+    elif error_code == 500:
+        # Simule une erreur interne en divisant par zéro
+        result = 1 / 0
+    else:
+        return "Code d'erreur non valide pour le test.", 400
 
-
-@app.errorhandler(429)
-def ratelimit_handler(e):
-    """Handles 429 Too Many Requests errors."""
-    logger.warning(f"Rate limit exceeded - IP: {request.remote_addr}")
-    return render_template('429.html', limit=e.description), 429
+# The error handlers are now in app/errors.py
