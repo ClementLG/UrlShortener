@@ -262,6 +262,10 @@ def create_short_url():
         400:
           description: Invalid URL provided.
     """
+    # Trigger cleanup with a 10% probability
+    if random.random() < 0.1:
+        cleanup_expired_urls()
+
     data = request.get_json()
     if not data or 'long_url' not in data:
         abort(400, description="The 'long_url' parameter is required.")
