@@ -1,112 +1,130 @@
 # URL Shortener
 
-A simple URL shortener application built with Python, Flask, and SQLite.
+A simple, yet powerful URL shortener application built with Python, Flask, and SQLite. It provides a clean user interface, a RESTful API, and detailed statistics for your shortened links. It is fully containerized using Docker for easy deployment.
 
 ## Features
 
-*   URL shortening.
-*   Automatic URL expiration (configurable: 24h, 48h, 1 week).
-*   Redirection to the long URL.
-*   Basic DDoS protection (rate limiting).
-*   Action logging (creation, access, expiration, errors).
+*   **URL Shortening**: Quickly shorten long URLs.
+*   **Customizable Expiration**: Set expiration dates for your links (24h, 48h, or 1 week).
+*   **Usage Limits**: Limit the number of times a link can be used.
+*   **Statistics Page**: Track the number of clicks and other details for each shortened URL.
+*   **RESTful API**: Programmatically create short URLs with Swagger documentation.
+*   **Rate Limiting**: Basic DDoS protection on the API and redirection endpoints.
+*   **Comprehensive Logging**: Logs creations, accesses, expirations, and errors for monitoring and debugging.
+*   **Dockerized**: Comes with `Dockerfile` and `docker-compose.yml` for easy and consistent deployment.
 
 ## Prerequisites
 
-*   Python 3.7+
-*   Flask
-*   Flask-Limiter
-*   (Optional) Docker and Docker Compose
+*   Docker
+*   Docker Compose
 
-## Installation (without Docker)
+## Installation and Running with Docker
+
+This is the recommended way to run the application.
 
 1.  **Clone the repository:**
     ```bash
-    git clone <REPO_URL>
-    cd <FOLDER_NAME>
+    git clone https://github.com/ClementLG/UrlShortener.git
+    cd url-shortener
     ```
 
-2.  **Create a virtual environment (recommended):**
+2.  **Build and run the application using Docker Compose:**
+    ```bash
+    docker-compose up -d --build
+    ```
+    This command will build the Docker image and start the application in the background. The database and logs will be initialized automatically.
+
+3.  **Access the application:**
+    *   **Application**: `http://localhost:5000`
+    *   **API Documentation (Swagger)**: `http://localhost:5000/apidocs/`
+
+## Installation (Manual, without Docker)
+
+If you prefer not to use Docker:
+
+1.  **Prerequisites**:
+    *   Python 3.7+
+    *   Flask, Flask-Limiter, Flasgger
+
+2.  **Clone the repository and navigate into it.**
+
+3.  **Create a virtual environment (recommended):**
     ```bash
     python3 -m venv venv
-    source venv/bin/activate  # Linux/macOS
-    venv\Scripts\activate  # Windows
+    source venv/bin/activate  # On Linux/macOS
+    venv\Scripts\activate    # On Windows
     ```
 
-3.  **Install dependencies:**
+4.  **Install dependencies:**
     ```bash
     pip install -r app/requirements.txt
     ```
 
-4.  **Create the logs directory:**
-    ```bash
-    mkdir logs
-    ```
 5.  **Initialize the database:**
     ```bash
     flask init-db
     ```
+
 6.  **Run the application:**
     ```bash
     flask run
     ```
 
-    The application will be accessible at `http://127.0.0.1:5000`.
+## API Usage
 
-## Installation with Docker
+The application includes a RESTful API for creating short URLs.
 
-1.  **Install Docker and Docker Compose.**
-2.  **Clone the repository.**
-3.  **Build and run the application:**
-    ```bash
-    docker-compose up -d --build
-    ```
-4.  **Access the application:** `http://<YOUR_HOST_IP>:5000` (You might need to uncomment the port mapping in `docker-compose.yml`)
+### Create a Short URL
 
-## Configuration Files
+*   **Endpoint**: `POST /api/urls`
+*   **Content-Type**: `application/json`
 
-*   `app/app.py`: Main Flask application code.
-*   `app/schema.sql`: SQLite database schema.
-*   `app/templates/`: HTML templates (index.html, 404.html, 429.html, partials/logo.html).
-*   `app/static/`: Static files (style.css, images).
-*   `Dockerfile`: Instructions for building the Docker image.
-*   `docker-compose.yml`: Configuration for Docker Compose.
-*   `logs/app.log`: Log file (created automatically).
-*   `urls.db`: SQLite database (created automatically).
+**Request Body:**
+
+```json
+{
+  "long_url": "https://your-long-url.com/with/a/very/long/path",
+  "duration": "24h",
+  "uses_limit": 100
+}
+```
+
+*   `long_url` (string, required): The original URL to shorten.
+*   `duration` (string, optional, default: `'24h'`): The validity period. Can be `'24h'`, `'48h'`, or `'1w'`.
+*   `uses_limit` (integer, optional): The maximum number of uses.
+
+**Success Response (201 Created):**
+
+```json
+{
+  "short_url": "http://localhost:5000/aBcDeFg"
+}
+```
+
+## Project Structure
+
+```
+url_shortener/
+├── app/
+│   ├── __init__.py
+│   ├── app.py            # Main Flask application
+│   ├── config.py         # Configuration file
+│   ├── errors.py         # Custom error handlers
+│   ├── requirements.txt  # Python dependencies
+│   ├── schema.sql        # Database schema
+│   ├── static/           # Static files (CSS, images)
+│   └── templates/        # HTML templates
+├── logs/                 # (Created automatically) Log directory
+├── urls.db               # (Created automatically) SQLite database
+├── Dockerfile            # Instructions to build the Docker image
+├── docker-compose.yml    # Docker Compose configuration
+└── README.md
+```
 
 ## Logs
 
-Logs are saved in the `logs/app.log` file. They include the timestamp, user's IP address, the URL (long and short, if applicable), and the action performed. Logs rotate weekly, keeping the logs of the last 4 weeks.
-
-## Possible Improvements
-
-*   User authentication.
-*   User interface to manage shortened URLs (edit, delete, statistics, tracking).
-*   RESTful API.
-*   Use of a more robust database (PostgreSQL, MySQL) for production.
-*   Unit tests.
-
-## Architecture
-
+When running with Docker, logs are managed by the Docker daemon. You can view them with:
+```bash
+docker-compose logs -f
 ```
-url_shortener/        <-- Project root directory
-├── app/
-│   ├── app.py            <-- Main Flask application file
-│   ├── schema.sql        <-- SQLite database schema
-│   ├── requirements.txt  <-- Python dependencies
-│   ├── templates/        <-- HTML templates
-│   │   ├── index.html    <-- Home page (form)
-│   │   ├── 404.html      <-- 404 error page
-│   │   ├── 429.html      <-- 429 error page
-│   │   └── partials/
-│   │       └── logo.html  <-- Reusable logo partial
-│   └── static/           <-- Static files (CSS, JS, images)
-│       ├── style.css     <-- Custom CSS file
-│       └── images/
-│           ├── favicon.ico <-- Application favicon
-│           └── logo.png    <-- (Optional) Logo image
-├── Dockerfile        <-- Instructions to build the Docker image
-├── docker-compose.yml <-- Docker Compose configuration file
-├── logs/              <-- (Created automatically) Log directory
-│   └── app.log        <-- (Created automatically) Log file
-├── urls.db            <-- (Created automatically) SQLite database
-└── README.md         <-- This file
+When running manually, logs are stored in `logs/app.log`. They rotate weekly, and the last 4 weeks of logs are kept. (Can be binded in docker container)
